@@ -1,6 +1,6 @@
 # azure-sig-imagebuilder-vmss-ext
 
-End to end scenario for Shared Image Gallery, Image Builder and scale sets with custom images, extensions and rolling upgrades.
+End to end scenario for Shared Image Gallery, Image Builder and scale sets with custom images, extensions and rolling upgrades (ARM Templates).
 
 [Azure Image Builder overview in Linux](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/image-builder-overview
 )
