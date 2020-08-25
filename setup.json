@@ -1,0 +1,8 @@
+{
+    "galleryResourceGroupName": "imagebuilder",
+    "vmssResourceGroupName": "vmss-ext",
+    "location": "westeurope",
+    "galleryName": "sigvmmsexttest",
+    "galleryImageDefinitionName": "rjfmUbuntu1804",
+    "vmssName": "rjfm01"
+}

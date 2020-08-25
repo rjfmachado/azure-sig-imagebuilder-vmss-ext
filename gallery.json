@@ -1,0 +1,135 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "galleryName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Shared Image Gallery."
+            }
+        },
+        "galleryImageDefinitionName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Image Definition"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location of the Shared Image Gallery."
+            }
+        }
+    },
+    "functions": [],
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Compute/galleries",
+            "name": "[parameters('galleryName')]",
+            "apiVersion": "2019-12-01",
+            "location": "[parameters('location')]",
+            "properties": {
+                "description": "arm-imagebuilder-vmss-extension"
+            },
+            "tags": {
+                "provisioner": "arm-template",
+                "source": "local/arm-imagebuilder-vmss-extension"
+            }
+        },
+        {
+            "type": "Microsoft.Compute/galleries/images",
+            "name": "[concat(parameters('galleryName'), '/', parameters('galleryImageDefinitionName'))]",
+            "apiVersion": "2019-12-01",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/galleries/', parameters('galleryName'))]"
+            ],
+            "properties": {
+                "description": "rjfm Custom Linux based on Ubuntu 18.04-LTS",
+                "osType": "Linux",
+                "osState": "Generalized",
+                "endOfLifeDate": "2030-01-01",
+                "identifier": {
+                    "publisher": "rjfm",
+                    "offer": "ga",
+                    "sku": "18.04-LTS"
+                },
+                "recommended": {
+                    "vCPUs": {
+                        "min": "1",
+                        "max": "64"
+                    },
+                    "memory": {
+                        "min": "2048",
+                        "max": "307720"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "name": "[parameters('galleryName')]",
+            "apiVersion": "2018-11-30",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "provisioner": "arm-template",
+                "source": "local/arm-imagebuilder-vmss-extension"
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleDefinitions",
+            "apiVersion": "2018-07-01",
+            "name": "[guid(resourceGroup().id)]",
+            "properties": {
+                "roleName": "Image Builder Service Image Contributor",
+                "description": "Image Builder access to create resources for the image build, you should delete or split out as appropriate",
+                "type": "customRole",
+                "isCustom": true,
+                "permissions": [
+                    {
+                        "actions": [
+                            "Microsoft.Compute/galleries/read",
+                            "Microsoft.Compute/galleries/images/read",
+                            "Microsoft.Compute/galleries/images/versions/read",
+                            "Microsoft.Compute/galleries/images/versions/write",
+                            "Microsoft.Compute/images/write",
+                            "Microsoft.Compute/images/read",
+                            "Microsoft.Compute/images/delete"
+                        ],
+                        "notActions": []
+                    }
+                ],
+                "assignableScopes": [
+                    "[resourceGroup().id]"
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2017-09-01",
+            "name": "[guid(concat(resourceGroup().id), resourceId('Microsoft.Authorization/roleDefinitions', 'imagebuilderserviceimagecontributor'))]",
+            "dependsOn": [
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('galleryName'))]",
+                "[concat('Microsoft.Authorization/roleDefinitions/', guid(resourceGroup().id))]",
+                "[concat('Microsoft.Compute/galleries/', parameters('galleryName'))]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[resourceID('Microsoft.Authorization/roleDefinitions/', guid(resourceGroup().id))]",
+                "principalId": "[reference(resourceID('Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('galleryName'))).principalId]",
+                "scope": "[resourceGroup().id]"
+            }
+        }
+    ],
+    "outputs": {
+        "imageid": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Compute/galleries/images', parameters('galleryName'), parameters('galleryImageDefinitionName'))]"
+        },
+        "identity": {
+            "type": "string",
+            "value": "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('galleryName'))]"
+        }
+    }
+}

@@ -1,0 +1,108 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "galleryName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Shared Image Gallery."
+            }
+        },
+        "galleryImageDefinitionName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Image Definition"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location of the Shared Image Gallery."
+            }
+        }
+    },
+    "functions": [],
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.VirtualMachineImages/imageTemplates",
+            "name": "[parameters('galleryImageDefinitionName')]",
+            "apiVersion": "2020-02-14",
+            "location": "[parameters('location')]",
+            "dependsOn": [],
+            "tags": {
+            },
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('galleryName'))]": {}
+                }
+            },
+            "properties": {
+                "buildTimeoutInMinutes": 80,
+                "vmProfile": {
+                    "vmSize": "Standard_B2s",
+                    "osDiskSizeGB": 30
+                },
+                "source": {
+                    "type": "PlatformImage",
+                    "publisher": "Canonical",
+                    "offer": "UbuntuServer",
+                    "sku": "18.04-LTS",
+                    "version": "latest"
+                },
+                "customize": [
+                    {
+                        "type": "Shell",
+                        "name": "RunScriptFromSource",
+                        "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/quickquickstarts/customizeScript.sh"
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "CheckSumCompareShellScript",
+                        "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/quickquickstarts/customizeScript2.sh",
+                        "sha256Checksum": "ade4c5214c3c675e92c66e2d067a870c5b81b9844b3de3cc72c49ff36425fc93"
+                    },
+                    {
+                        "type": "File",
+                        "name": "downloadBuildArtifacts",
+                        "sourceUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/quickquickstarts/exampleArtifacts/buildArtifacts/index.html",
+                        "destination": "/tmp/index.html"
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "setupBuildPath",
+                        "inline": [
+                            "sudo mkdir /buildArtifacts",
+                            "sudo cp /tmp/index.html /buildArtifacts/index.html"
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "InstallUpgrades",
+                        "inline": [
+                            "sudo apt install unattended-upgrades",
+                            "sudo apt install nginx -y"
+                        ]
+                    }
+                ],
+                "distribute": [
+                    {
+                        "type": "SharedImage",
+                        "galleryImageId": "[resourceId('Microsoft.Compute/galleries/images', parameters('galleryName'), parameters('galleryImageDefinitionName'))]",
+                        "runOutputName": "rjfmUbuntu18.04-LTS",
+                        "artifactTags": {
+                            "source": "azureVmImageBuilder",
+                            "baseosimg": "ubuntu1804"
+                        },
+                        "replicationRegions": [
+                            "westeurope"
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {}
+}
