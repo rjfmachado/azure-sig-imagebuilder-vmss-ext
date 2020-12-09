@@ -118,7 +118,8 @@
             "properties": {
                 "roleDefinitionId": "[resourceID('Microsoft.Authorization/roleDefinitions/', guid(resourceGroup().id))]",
                 "principalId": "[reference(resourceID('Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('galleryName'))).principalId]",
-                "scope": "[resourceGroup().id]"
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
             }
         }
     ],
